@@ -16,12 +16,16 @@ import { useState } from "react";
 import axios from "axios";
 import Verifyotp from "../otp/page";
 import { useAppSelector } from "../redux/hook/hook";
+import { useAppDispatch } from "../redux/store/store";
+import { uploadImage } from "../redux/async/uploadImage";
 export default function Profile() {
 const email = useAppSelector((state)=>state.user.email);
 const selectVarified = useAppSelector((state)=>state.user.isVerified);
+const AvtarUrl = useAppSelector((state)=>state.api.avatarUrl);
+const dispatch = useAppDispatch()
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [cloudUrl,setCloudUrl] = useState<string>("");
+  // const [cloudUrl,setCloudUrl] = useState<string>("");
  
   const [open,setOpen] = useState<boolean>(false);
 
@@ -30,21 +34,7 @@ const selectVarified = useAppSelector((state)=>state.user.isVerified);
   if (file) {
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file); 
-
-      const res = await axios.post("http://localhost:3333/user/upload", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      setCloudUrl(res.data); 
-    } catch (err) {
-      console.error(err);
-    }
+     dispatch(uploadImage(file));
   }
 };
 
@@ -59,7 +49,7 @@ const selectVarified = useAppSelector((state)=>state.user.isVerified);
     age: formData.get('age'),
     gender: formData.get('gender'),
     email: formData.get('email'),
-    avatar: cloudUrl
+    avatar: AvtarUrl
   };
 console.log(payload);
   try {
