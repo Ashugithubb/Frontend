@@ -2,6 +2,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+ import { ToastContainer, toast } from 'react-toastify';
 import {
   TextField,
   Button,
@@ -39,7 +40,7 @@ export default function LoginForm() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
-
+const notify = () => toast("Login Successfull!");
   const onSubmit = async (data: LoginFormData) => {
     const email = data.email;
    
@@ -50,6 +51,7 @@ export default function LoginForm() {
       const res2 = await axios.post('http://localhost:3333/user/email', {email} );
        dispatch(setUser({ email: data.email, isVerified: res2.data }));
       console.log(res.data);
+      notify()
       router.push('/home');
     }
     catch (err) {
@@ -116,7 +118,7 @@ export default function LoginForm() {
           >
             Log In
           </Button>
-
+             <ToastContainer />
           <Box mt={2} textAlign="center">
             <Typography variant="body2">
               Don&apos;t have an account?{' '}
