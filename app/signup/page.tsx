@@ -1,142 +1,139 @@
-'use client'
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-// import { doc, setDoc } from "firebase/firestore";
+'use client';
+
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
-    Box,
-    TextField,
-    Button,
-    Typography,
-    Paper,
-    // Stack,
-    Snackbar,
-    Alert,
-} from "@mui/material";
+  Box,
+  Button,
+  Typography,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Link as MuiLink,
+} from '@mui/material';
+import TextField from '@mui/material/TextField';
+import Link from 'next/link';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { useRouter } from 'next/navigation'
+import axios from 'axios';
 
-export const SignUp = () => {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [openSnackbar, setOpenSnackbar] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState("");
-    const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
-    const navigate = useNavigate();
+const signupSchema = z
+  .object({
+    email: z.string().email({ message: 'Invalid email address' }),
+    password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+    confirmPassword: z.string().min(6, { message: 'Confirm password is required' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
+  });
 
+type SignupFormData = z.infer<typeof signupSchema>;
 
+export default function SignupForm() {
+  const [showPassword, setShowPassword] = useState(false);
+const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
+  const onSubmit = async (data: SignupFormData) => {
+    try{
+      
+   
+    const res = await axios.post('http://localhost:3333/auth/signup',data);
+    console.log(res);
+    router.push('/login');
+    
+  }
+    catch(error){
+        console.log(error);
+    }
 
-    const handleSignup = async () => {
-        // try {
-        //   const res =   await createUserWithEmailAndPassword(auth, email, password);
-        //     navigate("/login");
-        //     setOpenSnackbar(true);
-        //     await setDoc(doc(db, "users", res.user.uid), {
-        //      id:res.user.uid,
-        //      name,
-        //      email,
-        //      password
-        //     });
-        //      await setDoc(doc(db, "userChats", res.user.uid), {
-        //      chats:[]
-        //     });
-        //     setSnackbarMessage("🎉 Account created successfully!");
-        //     setSnackbarSeverity("success");
-        //     setTimeout(() => {
-        //     navigate("/login");
-        // }, 20000);
-        // } catch (error: any) {
-        //     setSnackbarMessage(error.message);
-        //     setSnackbarSeverity("error");
-        //     setOpenSnackbar(true);
-        // }
-    };
-    const handleCloseSnackbar = (
-        _?: React.SyntheticEvent | Event,
-        reason?: string
-    ) => {
-        if (reason === "clickaway") return;
-        setOpenSnackbar(false);
-    };
+   
+  };
 
+  return (
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      minHeight="100vh"
+      bgcolor="#f5f5f5"
+    >
+      <Paper elevation={3} sx={{ padding: 4, width: 350 }}>
+        <Typography variant="h5" gutterBottom>
+          Sign Up
+        </Typography>
 
-    // ...existing code...
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+         
 
-    return (
-        <Box
-            sx={{
-                minHeight: "100vh",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor: "#f5f6fa",
+          <TextField
+            label="Email"
+            {...register('email')}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+            fullWidth
+            margin="normal"
+          />
+
+          <TextField
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            {...register('password')}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            fullWidth
+            margin="normal"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
-        >
-            <Paper elevation={3} sx={{ padding: 4, minWidth: 320 }}>
+          />
 
+          <TextField
+            label="Confirm Password"
+            type="password"
+            {...register('confirmPassword')}
+            error={!!errors.confirmPassword}
+            helperText={errors.confirmPassword?.message}
+            fullWidth
+            margin="normal"
+          />
 
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+            Sign Up
+          </Button>
 
-
-                <Typography variant="h5" align="center" gutterBottom>
-                    Create A Account
-                </Typography>
-
-                <Box component="form" noValidate autoComplete="off">
-                    <TextField
-                        label="Name"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        type="Text"
-                        value={name}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                    />
-                    <TextField
-                        label="Email"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        type="email"
-                        value={email}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                    />
-                    <TextField
-                        label="Password"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={password}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    />
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        sx={{ mt: 2 }}
-                        onClick={handleSignup}
-                    >
-                        SignUp
-                    </Button>
-                </Box>
-            </Paper>
-
-            {/* Snackbar */}
-            <Snackbar
-                open={openSnackbar}
-                autoHideDuration={3000}
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-                <Alert
-                    onClose={handleCloseSnackbar}
-                    severity={snackbarSeverity}
-                    sx={{ width: "100%" }}
-                >
-                    {snackbarMessage}
-                </Alert>
-            </Snackbar>
-        </Box>
-    );
-
-
-};
+          <Box mt={2} textAlign="center">
+            <Typography variant="body2">
+              Already have an account?{' '}
+              <MuiLink component={Link} href="/login" underline="hover">
+                Log In
+              </MuiLink>
+            </Typography>
+          </Box>
+        </form>
+      </Paper>
+    </Box>
+  );
+}

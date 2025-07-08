@@ -1,183 +1,132 @@
 'use client'
-import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Button,
-  FormControl,
-  Checkbox,
-  FormControlLabel,
-  InputLabel,
-  OutlinedInput,
   TextField,
+  Button,
+  Typography,
+  Box,
+  Link as MuiLink,
+  Paper,
   InputAdornment,
-  Link,
-  Alert,
   IconButton,
 } from '@mui/material';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { AppProvider } from '@toolpad/core/AppProvider';
-import { SignInPage } from '@toolpad/core/SignInPage';
-import { useTheme } from '@mui/material/styles';
+import Link from 'next/link';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { useState } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/navigation'
+import { useAppDispatch } from '../redux/store/store';
+import { setUser } from '../redux/slice/user';
+import { useAppSelector } from '../redux/hook/hook';
 
-const providers = [{ id: 'credentials', name: 'Email and Password' }];
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Invalid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+});
 
-function CustomEmailField() {
-  return (
-    <TextField
-      id="input-with-icon-textfield"
-      label="Email"
-      name="email"
-      type="email"
-      size="small"
-      required
-      fullWidth
-      slotProps={{
-        input: {
-          startAdornment: (
-            <InputAdornment position="start">
-              <AccountCircle fontSize="inherit" />
-            </InputAdornment>
-          ),
-        },
-      }}
-      variant="outlined"
-    />
-  );
-}
+type LoginFormData = z.infer<typeof loginSchema>;
 
-function CustomPasswordField() {
-  const [showPassword, setShowPassword] = React.useState(false);
+export default function LoginForm() {
+  const [showPassword, setShowPassword] = useState(false);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const onSubmit = async (data: LoginFormData) => {
+    const email = data.email;
+   
+    try {
+      const res = await axios.post('http://localhost:3333/auth/login', data, {
+        withCredentials: true, 
+      });
+      const res2 = await axios.post('http://localhost:3333/user/email', {email} );
+       dispatch(setUser({ email: data.email, isVerified: res2.data }));
+      console.log(res.data);
+      router.push('/home');
+    }
+    catch (err) {
+      console.log(err);
+      dispatch(setUser({ email: data.email, isVerified: false }));
+    }
 
-  const handleMouseDownPassword = (event: React.MouseEvent) => {
-    event.preventDefault();
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
   };
 
   return (
-    <FormControl sx={{ my: 2 }} fullWidth variant="outlined">
-      <InputLabel size="small" htmlFor="outlined-adornment-password">
-        Password
-      </InputLabel>
-      <OutlinedInput
-        id="outlined-adornment-password"
-        type={showPassword ? 'text' : 'password'}
-        name="password"
-        size="small"
-        endAdornment={
-          <InputAdornment position="end">
-            <IconButton
-              aria-label="toggle password visibility"
-              onClick={handleClickShowPassword}
-              onMouseDown={handleMouseDownPassword}
-              edge="end"
-              size="small"
-            >
-              {showPassword ? (
-                <VisibilityOff fontSize="inherit" />
-              ) : (
-                <Visibility fontSize="inherit" />
-              )}
-            </IconButton>
-          </InputAdornment>
-        }
-        label="Password"
-      />
-    </FormControl>
-  );
-}
-
-function CustomButton() {
-  return (
-    <Button
-      type="submit"
-      variant="outlined"
-      color="info"
-      size="small"
-      disableElevation
-      fullWidth
-      sx={{ my: 2 }}
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      minHeight="100vh"
+      bgcolor="#f5f5f5"
     >
-      Log In
-    </Button>
-  );
-}
+      <Paper elevation={3} sx={{ padding: 4, width: 350 }}>
+        <Typography variant="h5" gutterBottom>
+          Login
+        </Typography>
 
-function SignUpLink() {
-  return (
-    <Link href="/" variant="body2">
-      Sign up
-    </Link>
-  );
-}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <TextField
+            label="Email"
+            {...register('email')}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+            fullWidth
+            margin="normal"
+          />
 
-function ForgotPasswordLink() {
-  return (
-    <Link href="/" variant="body2">
-      Forgot password?
-    </Link>
-  );
-}
+          <TextField
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            {...register('password')}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            fullWidth
+            margin="normal"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={togglePasswordVisibility} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
 
-function Title() {
-  return <h2 style={{ marginBottom: 8 }}>Login</h2>;
-}
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2 }}
+          >
+            Log In
+          </Button>
 
-function Subtitle() {
-  return (
-    <Alert sx={{ mb: 2, px: 1, py: 0.25, width: '100%' }} severity="warning">
-      We are investigating an ongoing outage.
-    </Alert>
-  );
-}
-
-function RememberMeCheckbox() {
-  const theme = useTheme();
-  return (
-    <FormControlLabel
-      label="Remember me"
-      control={
-        <Checkbox
-          name="remember"
-          value="true"
-          color="primary"
-          sx={{ padding: 0.5, '& .MuiSvgIcon-root': { fontSize: 20 } }}
-        />
-      }
-      slotProps={{
-        typography: {
-          color: 'textSecondary',
-          fontSize: theme.typography.pxToRem(14),
-        },
-      }}
-    />
-  );
-}
-
-export default function SlotsSignIn() {
-  const theme = useTheme();
-  return (
-    <AppProvider theme={theme}>
-      <SignInPage
-        signIn={(provider, formData) =>
-          alert(
-            `Logging in with "${provider.name}" and credentials: ${formData.get('email')}, ${formData.get('password')}, and checkbox value: ${formData.get('remember')}`,
-          )
-        }
-        slots={{
-          title: Title,
-          subtitle: Subtitle,
-          emailField: CustomEmailField,
-          passwordField: CustomPasswordField,
-          submitButton: CustomButton,
-          signUpLink: SignUpLink,
-          rememberMe: RememberMeCheckbox,
-          forgotPasswordLink: ForgotPasswordLink,
-        }}
-        slotProps={{ form: { noValidate: true } }}
-        providers={providers}
-      />
-    </AppProvider>
+          <Box mt={2} textAlign="center">
+            <Typography variant="body2">
+              Don&apos;t have an account?{' '}
+              <MuiLink component={Link} href="/signup" underline="hover">
+                Sign up
+              </MuiLink>
+            </Typography>
+          </Box>
+        </form>
+      </Paper>
+    </Box>
   );
 }
